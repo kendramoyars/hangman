@@ -1,3 +1,4 @@
+require "yaml"
 module Hangman
 
   class Board
@@ -20,10 +21,11 @@ module Hangman
   end
 
   class Game
-    attr_accessor :word, :num_guesses, :num_tries, :board, :dictionary, :hidden_word, :letter_guess, :prev_guesses
+    attr_accessor :word, :num_guesses, :num_tries, :board, :dictionary, :hidden_word, :letter_guess, :prev_guesses, :db, :filename
 
     def initialize
       @dictionary = load_words
+      @filename = "./saved_data.yml"
       @word = select_random_word(dictionary)
       @hidden_word = create_hidden_word(word)
       @board = Board.new(hidden_word)
@@ -31,23 +33,62 @@ module Hangman
       @num_tries = 0
       @letter_guess = ""
       @prev_guesses = []
+      @db = {}
+    end
+
+    def run
+    check_saved_game
+    end
+
+    def check_saved_game
+      if File.exists? filename
+        puts ""
+        puts "Do you want to load the saved game on file? (Y/N): "
+        input = gets.chomp.upcase
+        if input == "Y"
+          db = {}
+          File.open(filename) { db = YAML.load_file(filename) }
+          @num_guesses = db[:num_guesses]
+          @num_tries = db[:num_tries]
+          @word = db[:word]
+          @hidden_word = db[:hidden_word]
+          @board = Board.new(hidden_word)
+          start_game
+        else
+        start_game
+        end
+      else
+      start_game
+      end
+
     end
 
     def start_game
-      #if a file exists ask if we want to load that file - add this in later.
       puts "#{word} - be sure to take this out ;)"
       puts ""
       puts "Let's Play Hangman!!"
       puts "You will have #{num_guesses} guesses."
+      puts ""
+      puts "Type 'ss' after a round to save your game!"
+      puts
       board.print_board
       get_letter
-      
+    end
+
+    def save_game
+      db =  {num_guesses: num_guesses, num_tries: num_tries, word: word, hidden_word: hidden_word}
+      File.open(filename, "w+") { |f| f.write(db.to_yaml) }
     end
 
     def get_letter
       puts "What letter would you like to guess?"
       self.letter_guess = gets.chomp
-      verify_letter
+
+      if num_tries != 0 && letter_guess.downcase == "ss"
+        save_game
+      else
+        verify_letter
+      end
     end
 
     def verify_letter
@@ -131,7 +172,6 @@ module Hangman
     end
 
     def load_words
-      # we could possibly shorten the code in this function
       dictionary = File.open("5desk.txt") {|x| x.readlines}
       dictionary.map! {|word| word.upcase.strip}
       dictionary.select! {|word| word.length >= 5 && word.length <= 12}
@@ -146,6 +186,6 @@ module Hangman
       Array.new(word.length) {"_"}
     end
 
-    game = Game.new.start_game
+    game = Game.new.run
   end
 end

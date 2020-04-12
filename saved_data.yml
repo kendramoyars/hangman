@@ -1,0 +1,10 @@
+---
+:num_guesses: 8
+:num_tries: 3
+:word: SPOOK
+:hidden_word:
+- S
+- _
+- O
+- O
+- _
